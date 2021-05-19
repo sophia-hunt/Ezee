@@ -1,0 +1,174 @@
+Module Module1
+    Dim frmMainForm As New Form1
+    Dim rand As New Random
+    Public g_intBestGame As Integer = 9999
+    Public g_intWorstGame As Integer = 0
+
+    Public Function RollDie() As Integer
+        'accepts no arguments
+        'returns a single random int min1 max6
+        'variable to hold and return a random integer
+        Dim intDie As Integer
+        intDie = rand.Next(6) + 1
+        'return the resulting die roll
+        Return intDie
+    End Function
+    Public Function FirstRoll() As Integer()
+        'firstroll accepts no arguments
+        'calls rolldie 
+        'return an array of 12 values all from 1-6
+        'initialize
+        Dim index As Integer 'loop counter
+        Const intMAX_SUBSCRIPT As Integer = 11
+        Dim intDice(intMAX_SUBSCRIPT) As Integer 'initialize 12 roll array
+        For index = 0 To 11
+            intDice(index) = RollDie()
+        Next
+        Return intDice
+    End Function
+    Public Function CountFrequency(ByVal intDice As Integer(), intNumber As Integer) As Integer
+        'accepts two arguments
+        'an array of 12 numbers, and numbers 1-6
+        'returns the frequenc of the number that occurs in the array 
+        Dim intFrequency As Integer
+        For Each die In intDice
+            If die = intNumber Then
+                intFrequency += 1
+            End If
+        Next
+        Return intFrequency
+    End Function
+    Public Function RerollOne(ByVal intDice As Integer(), intIndex As Integer) As Integer()
+        intDice(intIndex) = RollDie()
+        Return intDice
+    End Function
+    Public Sub RerollMany(ByVal intDice As Integer())
+        'accepts a list of dice
+        'calls all previous functions to play the game
+        Dim intNumberofRolls As Integer = 1
+        Dim intMode As Integer = FindMode(intDice)
+        Dim intNewDice(11) As Integer
+        Dim intUnmatched() As Integer
+        Dim intNumberMatched As Integer = 0
+        intUnmatched = ListUnmatchedDice(intDice)
+        For intCount = 0 To (intDice.Length - 1)
+            intNewDice(intCount) = intDice(intCount)
+        Next
+        Do While intNumberMatched < 12
+            'reroll each unmatched die
+            For Each index In intUnmatched
+                intNewDice = RerollOne(intNewDice, index)
+            Next
+            For Each die In intNewDice
+                intMode = FindMode(intNewDice)
+                If die = intMode Then
+                    intNumberMatched += 1
+                Else
+                    intNumberMatched = 0
+                End If
+            Next
+            're-index the unmatched array
+            ReDim intUnmatched(ListUnmatchedDice(intNewDice).Length - 1)
+            'get a new list of unmatched dice, increase the roll counter, output the array of the dice
+            intUnmatched = ListUnmatchedDice(intNewDice)
+            '  intNumberMatched += 1
+            intNumberofRolls += 1
+            OutputDice(intNewDice)
+            ' Form1.lstGameRolls.Items.Add(intNewDice(0) & "--" & intNewDice(1) & "--" & intNewDice(2) & "--" & intNewDice(3) & "--" & intNewDice(4) & "--" & intNewDice(5) & "--" & intNewDice(6) & "--" & intNewDice(7) & "--" & intNewDice(8) & "--" & intNewDice(9) & "--" & " " & intNewDice(10) & "--" & " " & intNewDice(11))
+        Loop
+        'find high and low rolls
+        If intNumberofRolls <= g_intBestGame Then
+            g_intBestGame = intNumberofRolls
+        End If
+        If intNumberofRolls >= g_intWorstGame Then
+            g_intWorstGame = intNumberofRolls
+        End If
+        'output our worst and best rolls
+        Form1.lblBest.Text = g_intBestGame.ToString
+        Form1.lblWorst.Text = g_intWorstGame.ToString
+        Form1.lblNumberRolls.Text = intNumberofRolls.ToString
+    End Sub
+    Public Sub ResetAll()
+        'accepts no arguments
+        'resets all controls to starting values
+
+        Form1.lstGameRolls.Items.Clear()
+        Form1.lblNumberRolls.Text = String.Empty
+        Form1.txtNumberGames.Text = "1"
+        Form1.txtNumberGames.Focus()
+    End Sub
+    Public Function FindMode(ByVal intDice As Integer()) As Integer
+        'use CountFrequency to determine which die number occurs the most often
+        'return it
+        Dim intMode As Integer
+        Dim intRecord As Integer = 0
+        For Each intDieNumber As Integer In {1, 2, 3, 4, 5, 6} 'set the range to search
+            If CountFrequency(intDice, intDieNumber) > intRecord Then
+                intRecord = CountFrequency(intDice, intDieNumber) 'best so far
+                intMode = intDieNumber 'new mode is selected
+            End If
+        Next
+        Return intMode
+    End Function
+    Public Function ListUnmatchedDice(ByVal intDice As Integer()) As Integer()
+        'accepts an argument from an array of 12 dice rolls
+        'find the mode
+        'loop through the original array, creating a separate array of indexes <> mode
+        'return the new array only containing the indexes of the dice to reroll
+        Dim intMode As Integer = FindMode(intDice)
+        Dim intUnmatched(12 - CountFrequency(intDice, intMode) - 1) As Integer
+        Dim intIndex As Integer = 0 'setting out index for the new array
+        'loop through the array of dice, adding each index to our array unmatched that is not equal to the mode
+        For intCount = 0 To (intDice.Length - 1)
+            If intDice(intCount) <> intMode Then
+                intUnmatched(intIndex) = intCount
+                intIndex += 1
+            End If
+        Next
+        'return the resulting list of index to be rerolled
+        Return intUnmatched
+    End Function
+    Public Sub StartGame()
+        'accept no arguments
+        'begin calling functions to play the game
+        'play as many games as the user inputs
+        Dim intDice(11) As Integer
+        ' Dim intUnmatched As Integer() = ListUnmatchedDice(intDice)
+        Dim intGame As Integer = 1 'default game played
+        Dim intNumberofRolls As Integer = 0
+        Dim intTotalGamesPlayed As Integer = 0
+        'loop to play the specified number games
+        Dim intTextGames As Integer
+        Dim strTextGames As String
+        'validate the user hasn't entered a letter
+        If IsNumeric(Form1.txtNumberGames.Text) = False Then
+            MessageBox.Show("Please enter a number in the number of games before trying to continue.")
+            Form1.txtNumberGames.Focus()
+        Else
+            strTextGames = Form1.txtNumberGames.Text
+            intTextGames = CInt(strTextGames)
+            For intTotalGamesPlayed = 1 To intTextGames
+                intDice = FirstRoll()
+                Form1.lstGameRolls.Items.Add("Dim number:" & vbCrLf)
+                Form1.lstGameRolls.Items.Add("0--1--2--3--4--5--6--7--8--9--10--11")
+                ' add the dice 
+                ' Form1.lstGameRolls.Items.Add(intDice(0) & "--" & intDice(1) & "--" & intDice(2) & "--" & intDice(3) & "--" & intDice(4) & "--" & intDice(5) & "--" & intDice(6) & "--" & intDice(7) & "--" & intDice(8) & "--" & intDice(9) & "--" & " " & intDice(10) & "--" & " " & intDice(11))
+                OutputDice(intDice)
+                RerollMany(intDice)
+            Next
+        End If
+        'For Each element In intDice
+        'Form1.lstGameRolls.Items.Add(" ")
+        'Next
+    End Sub
+    Public Sub OutputDice(ByVal intDice As Integer())
+        'acccepts an array of dice
+        'loops to output the array
+        Dim strDice As String = String.Empty
+        For Each die As Integer In intDice
+            strDice &= die.ToString
+            strDice &= "--"
+        Next
+        Form1.lstGameRolls.Items.Add(strDice)
+    End Sub
+End Module
